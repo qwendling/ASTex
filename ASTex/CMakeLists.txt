@@ -86,6 +86,7 @@ target_sources (${PROJECT_NAME} PRIVATE
 	CSN/tpsd.h
 
 	TilingBlending/simple_tnb.h
+	TilingBlending/tnb_from_obj.h
 )
 
 target_sources (${PROJECT_NAME} PRIVATE
