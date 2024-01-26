@@ -18,6 +18,7 @@ template <typename IMG> class Tiling_n_Blending {
   const IMG &img_input_; // exemple d'entrée
 
   EPIXT img_average_;
+  Eigen::Matrix3d F_average_;
   double lattice_resolution_ = 20;
 
   struct Face {
@@ -88,15 +89,21 @@ template <typename IMG> class Tiling_n_Blending {
     Eigen::Vector2d m1 = vertices_uv[faces[median].Vertices_uv(1)];
     Eigen::Vector2d m2 = vertices_uv[faces[median].Vertices_uv(2)];
     double median_axis = std::min({m0[axis], m1[axis], m2[axis]});
+    /*for(int i=0;i<=median;i++){
+            leftFaces.push_back(faces[i]);
+    }
+    for(int i=median;i<faces.size();i++){
+            rightFaces.push_back(faces[i]);
+    }*/
 
     for (auto &f : faces) {
       Eigen::Vector2d m0 = vertices_uv[f.Vertices_uv(0)];
       Eigen::Vector2d m1 = vertices_uv[f.Vertices_uv(1)];
       Eigen::Vector2d m2 = vertices_uv[f.Vertices_uv(2)];
-      if (std::min({m0[axis], m1[axis], m2[axis]}) < median_axis) {
+      if (std::min({m0[axis], m1[axis], m2[axis]}) <= median_axis) {
         leftFaces.push_back(f);
       }
-      if (std::max({m0[axis], m1[axis], m2[axis]}) > median_axis) {
+      if (std::max({m0[axis], m1[axis], m2[axis]}) >= median_axis) {
         rightFaces.push_back(f);
       }
     }
@@ -120,16 +127,35 @@ template <typename IMG> class Tiling_n_Blending {
     if (!node->f.empty()) {
       Face result;
       for (auto &f : node->f) {
-        Eigen::Vector2d v0 = Vertices_uv[f.Vertices_uv(0)];
-        Eigen::Vector2d v1 = Vertices_uv[f.Vertices_uv(1)];
-        Eigen::Vector2d v2 = Vertices_uv[f.Vertices_uv(2)];
+        Eigen::Vector2d v0 = 1000 * Vertices_uv[f.Vertices_uv(0)];
+        Eigen::Vector2d v1 = 1000 * Vertices_uv[f.Vertices_uv(1)];
+        Eigen::Vector2d v2 = 1000 * Vertices_uv[f.Vertices_uv(2)];
+        Eigen::Vector2d p2 = 1000 * p;
 
-        double d1 = (p - v0).x() * (v1 - v0).y() - (v1 - v0).x() * (p - v0).y();
-        double d2 = (p - v1).x() * (v2 - v1).y() - (v2 - v1).x() * (p - v1).y();
-        double d3 = (p - v2).x() * (v0 - v2).y() - (v0 - v2).x() * (p - v2).y();
+        double d1 =
+            (p2 - v0).x() * (v1 - v0).y() - (v1 - v0).x() * (p2 - v0).y();
+        double d2 =
+            (p2 - v1).x() * (v2 - v1).y() - (v2 - v1).x() * (p2 - v1).y();
+        double d3 =
+            (p2 - v2).x() * (v0 - v2).y() - (v0 - v2).x() * (p2 - v2).y();
 
-        if (d1 * d2 > 0 && d2 * d3 > 0) {
+        int s1 = __signbit(d1) - 1;
+        int s2 = __signbit(d2) - 1;
+        int s3 = __signbit(d3) - 1;
+        /*const double esp = 1e-12;
+        if (abs(d1) < esp) {
+          d1 = 0.;
+        }
+        if (abs(d2) < esp) {
+          d1 = 0.;
+        }
+        if (abs(d3) < esp) {
+          d1 = 0.;
+        }*/
+
+        if (s1 * s2 >= 0 && s2 * s3 >= 0) {
           result = f;
+          f.area = 1.;
           break;
         }
       }
@@ -154,6 +180,23 @@ template <typename IMG> class Tiling_n_Blending {
       return findTriangleContainingPoint(node->right, Vertices_uv, p,
                                          depth + 1);
     }
+  }
+
+#define NORMALIZE_TERM (21. / (2. * 3.1415))
+  float Kernel_W(float dist, float h) {
+    float q = dist / h;
+    if (q > 1.)
+      return 0.;
+    float m1 = (1.0f - q);
+    float m2 = (4.0f * q + 1.0f);
+    float h3 = h * h * h;
+    float alpha_d = NORMALIZE_TERM * (1. / h3);
+
+    return alpha_d * m1 * m1 * m1 * m1 * m2;
+  }
+
+  float kernel_Normalize(float dist, float h) {
+    return Kernel_W(dist, h) / Kernel_W(0., h);
   }
 
 protected:
@@ -274,6 +317,12 @@ public:
       sum += lv;
     });
 
+    F_average_ = Eigen::Matrix3d::Zero();
+    for (auto f : Faces) {
+      F_average_ += f.Sim;
+    }
+    F_average_ /= Faces.size();
+
     img_average_ = sum / double(img_input_.width() * img_input_.height());
   }
 
@@ -392,6 +441,8 @@ public:
       }
       R = U * VT;
       f.Sim = V * S * VT;
+      if (abs(f.Sim(0, 1) - f.Sim(1, 0)) > 0.000001)
+        std::cout << "pb" << std::endl;
       // f.Sim = f.Deformation_gradient;
     }
 
@@ -464,9 +515,12 @@ public:
   PIXT tile_pixel(Eigen::Vector2d &uv) // fait le tnb pour un pixel
   {
     uv[1] = abs(uv[1] - 1.);
-    //  grille
+    //    grille
     Eigen::Vector3d B;
     Eigen::Vector2i vertex1, vertex2, vertex3;
+    Face f = findTriangleContainingPoint(tree_, Vertices_uv, uv, 0);
+    // TriangleGrid(f.Sim.template block<2, 2>(0, 0) * uv, B, vertex1, vertex2,
+    // vertex3);
     TriangleGrid(uv, B, vertex1, vertex2, vertex3);
 
     // centers of tiles
@@ -482,9 +536,41 @@ public:
     Eigen::Matrix2d M_transfo_v2 = f_v2.Sim.template block<2, 2>(0, 0);
     Eigen::Matrix2d M_transfo_v3 = f_v3.Sim.template block<2, 2>(0, 0);
 
+    /*if (f_v1.area > 0.00001) {
+      Eigen::Vector3d U_v1;
+      barycentric(f_v1, cen1, U_v1.x(), U_v1.y(), U_v1.z());
+      float dist_v1 = 1. - 3. * U_v1.minCoeff();
+      dist_v1 = kernel_Normalize(dist_v1, 4.);
+
+      M_transfo_v1 = (F_average_ * (1 - dist_v1) + dist_v1 * f_v1.Sim)
+                         .template block<2, 2>(0, 0);
+    }
+    if (f_v2.area > 0.00001) {
+      Eigen::Vector3d U_v2;
+      barycentric(f_v2, cen2, U_v2.x(), U_v2.y(), U_v2.z());
+      float dist_v2 = 1. - 3. * U_v2.minCoeff();
+      dist_v2 = kernel_Normalize(dist_v2, 4.);
+
+      M_transfo_v2 = (F_average_ * (1 - dist_v2) + dist_v2 * f_v2.Sim)
+                         .template block<2, 2>(0, 0);
+    }
+    if (f_v3.area > 0.00001) {
+
+      Eigen::Vector3d U_v3;
+      barycentric(f_v3, cen3, U_v3.x(), U_v3.y(), U_v3.z());
+      float dist_v3 = 1. - 3. * U_v3.minCoeff();
+      dist_v3 = kernel_Normalize(dist_v3, 4.);
+
+      M_transfo_v3 = (F_average_ * (1 - dist_v3) + dist_v3 * f_v3.Sim)
+                         .template block<2, 2>(0, 0);
+    }*/
+
     Eigen::Vector2d uv1 = M_transfo_v1 * (uv - cen1) + cen1 + hash(vertex1);
     Eigen::Vector2d uv2 = M_transfo_v2 * (uv - cen2) + cen2 + hash(vertex2);
     Eigen::Vector2d uv3 = M_transfo_v3 * (uv - cen3) + cen3 + hash(vertex3);
+    /*uv1 = (uv - cen1) + cen1 + hash(vertex1);
+    uv2 = (uv - cen2) + cen2 + hash(vertex2);
+    uv3 = (uv - cen3) + cen3 + hash(vertex3);*/
     EPIXT t1 = fetch(uv1) - img_average_;
     EPIXT t2 = fetch(uv2) - img_average_;
     EPIXT t3 = fetch(uv3) - img_average_;
@@ -493,6 +579,47 @@ public:
 
     EPIXT P = W[0] * t1 + W[1] * t2 + W[2] * t3 + img_average_;
     clamp(P);
+
+    if (f.area > 0.0001) {
+
+      Eigen::Vector3d U;
+      barycentric(f, uv, U.x(), U.y(), U.z());
+      float dist = 1. - 3. * U.minCoeff();
+      dist = kernel_Normalize(dist, 4.);
+
+      Eigen::Matrix3d F_tmp = F_average_ * (1 - dist) + dist * f.Sim;
+      F_tmp = f.Sim;
+
+      float a = F_tmp(0, 0);
+      float b = F_tmp(1, 1);
+      float c = F_tmp(0, 1);
+
+      a = 0.5 * (atan(a) / (M_PI / 2.) + 1);
+      b = 0.5 * (atan(b) / (M_PI / 2.) + 1);
+      c = 0.5 * (atan(c) / (M_PI / 2.) + 1);
+
+      // P = 255. * Eigen::Vector3d(a, b, c);
+      //    P = Eigen::Vector3d(255, 0, 0);
+    } else {
+      Eigen::Matrix3d F_tmp = F_average_;
+
+      float a = F_tmp(0, 0);
+      float b = F_tmp(1, 1);
+      float c = F_tmp(0, 1);
+
+      a = 0.5 * (atan(a) / (M_PI / 2.) + 1);
+      b = 0.5 * (atan(b) / (M_PI / 2.) + 1);
+      c = 0.5 * (atan(c) / (M_PI / 2.) + 1);
+
+      // P = 255. * Eigen::Vector3d(a, b, c);
+      //    P = 255. * Eigen::Vector3d(0, 1, 0);
+    }
+    /*if (W[0] < 0.02)
+      P = EPIXT(255., 255., 255.);
+    if (W[1] < 0.02)
+      P = EPIXT(0, 255., 255.);
+    if (W[2] < 0.02)
+      P = EPIXT(255., 255., 0.);*/
 
     return IMG::itkPixel(P);
   }
