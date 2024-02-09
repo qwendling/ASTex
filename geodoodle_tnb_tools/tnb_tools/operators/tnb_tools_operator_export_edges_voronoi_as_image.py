@@ -198,23 +198,22 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
                 cur_pix = np.asarray([i_col, i_row]).astype(float)
                 cur_pix_color = out_image[i_row, i_col] # stores the index of the voronoi cell
 
-                if(cur_pix_color[0] < len(all_sample_pairs_in_image)):
-                    sample_longest_in_image, sample_shortest_in_image, color = all_sample_pairs_in_image[int(cur_pix_color[0])]
-                    dist_to_sample_longest = np.linalg.norm(cur_pix - sample_longest_in_image)
-                    dist_to_sample_shortest = np.linalg.norm(cur_pix - sample_shortest_in_image)
+                sample_longest_in_image, sample_shortest_in_image, color = all_sample_pairs_in_image[int(cur_pix_color[0])]
+                dist_to_sample_longest = np.linalg.norm(cur_pix - sample_longest_in_image)
+                dist_to_sample_shortest = np.linalg.norm(cur_pix - sample_shortest_in_image)
 
-                    if dist_to_sample_longest < dist_to_sample_shortest:
-                        out_direction = sample_longest_in_image - cur_pix
-                    else:
-                        out_direction = sample_shortest_in_image - cur_pix
-                        
-                    out_direction_norm = np.linalg.norm(out_direction)
-                    if out_direction_norm != 0.0:
-                        out_direction /= np.linalg.norm(out_direction)
-                    else:
-                        out_direction = np.asarray([0, 0, 0]).astype(float)
+                if dist_to_sample_longest < dist_to_sample_shortest:
+                    out_direction = sample_longest_in_image - cur_pix
+                else:
+                    out_direction = sample_shortest_in_image - cur_pix
                     
-                    out_image[i_row, i_col] = np.array([out_direction[0], out_direction[1], cur_pix_color[0]]).astype(float)
+                out_direction_norm = np.linalg.norm(out_direction)
+                if out_direction_norm != 0.0:
+                    out_direction /= np.linalg.norm(out_direction)
+                else:
+                    out_direction = np.asarray([0, 0, 0]).astype(float)
+                
+                out_image[i_row, i_col] = np.array([out_direction[0], out_direction[1], cur_pix_color[0]]).astype(float)
 
         # for cur_edge in all_longest_edges:
         #     cv2.line(out_image, np.array(cur_edge[0]).astype(int), np.array(cur_edge[1]).astype(int), (0, 255, 0, 255), 3)
