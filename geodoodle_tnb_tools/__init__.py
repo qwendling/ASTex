@@ -55,6 +55,7 @@ from .tnb_tools.operators import tnb_tools_operator_compute_directions_from_geod
 from .tnb_tools.operators import tnb_tools_operator_compute_horizontal_directions
 from .tnb_tools.operators import tnb_tools_operator_export_distance_to_uv_borders_as_image
 from .tnb_tools.operators import tnb_tools_operator_export_edges_voronoi_as_image
+from .tnb_tools.operators import tnb_tools_operator_export_lissage_triangulation
 from .tnb_tools.operators import tnb_tools_operator_export_scale_and_skew_as_image
 from .tnb_tools.operators import tnb_tools_operator_export_texture_directions_as_csv
 from .tnb_tools.operators import tnb_tools_operator_export_texture_directions_as_image
@@ -85,6 +86,7 @@ def register():
     tnb_tools_operator_view_directions.register()
     tnb_tools_operator_export_distance_to_uv_borders_as_image.register()
     tnb_tools_operator_export_edges_voronoi_as_image.register()
+    tnb_tools_operator_export_lissage_triangulation.register()
     tnb_tools_operator_export_texture_directions_as_csv.register()
     tnb_tools_operator_export_scale_and_skew_as_image.register()
     tnb_tools_operator_export_texture_directions_as_image.register()
@@ -103,6 +105,7 @@ def unregister():
     tnb_tools_operator_view_directions.unregister()
     tnb_tools_operator_export_distance_to_uv_borders_as_image.unregister()
     tnb_tools_operator_export_edges_voronoi_as_image.unregister()
+    tnb_tools_operator_export_lissage_triangulation.unregister()
     tnb_tools_operator_export_texture_directions_as_csv.unregister()
     tnb_tools_operator_export_scale_and_skew_as_image.unregister()
     tnb_tools_operator_export_texture_directions_as_image.unregister()

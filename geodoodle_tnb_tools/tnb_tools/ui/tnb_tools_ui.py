@@ -2,6 +2,7 @@ from ..operators import tnb_tools_operator_compute_directions_from_geodesic_grad
 from ..operators import tnb_tools_operator_compute_horizontal_directions
 from ..operators import tnb_tools_operator_export_distance_to_uv_borders_as_image
 from ..operators import tnb_tools_operator_export_edges_voronoi_as_image
+from ..operators import tnb_tools_operator_export_lissage_triangulation
 from ..operators import tnb_tools_operator_export_scale_and_skew_as_image
 from ..operators import tnb_tools_operator_export_texture_directions_as_csv
 from ..operators import tnb_tools_operator_export_texture_directions_as_image
@@ -47,6 +48,10 @@ class VIEW3D_PT_tnb_ui(bpy.types.Panel):
         
         layout.operator(tnb_tools_operator_export_edges_voronoi_as_image.TnbToolsOperatorExportEdgesVoronoiAsImage.bl_idname,
                         text='Export edge Voronoi',
+                        icon='EXPORT')
+        
+        layout.operator(tnb_tools_operator_export_lissage_triangulation.TnbToolsOperatorExportSmoothedValuesOnFaces.bl_idname,
+                        text='Lissage d'une valeur',
                         icon='EXPORT')
 
         layout.operator(tnb_tools_operator_export_scale_and_skew_as_image.TnbToolsOperatorExportScaleAndSkewAsImage.bl_idname,
