@@ -81,9 +81,9 @@ class MyColoredTriangle:
 
 
 
-class TnbToolsOperatorExportTEST(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
-    bl_idname       = "tnb_tools.operator_export_test"
-    bl_label        = "tnb_tools_export_test"
+class TnbToolsOperatorExportSmoothedValuesOnFaces(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
+    bl_idname       = "tnb_tools.operator_export_smoothed_values_on_faces"
+    bl_label        = "tnb_tools_export_smoothed_values_on_faces"
     bl_description  = "Test"
 
     # ExportHelper mixin class uses this
@@ -445,15 +445,15 @@ class TnbToolsOperatorExportTEST(bpy.types.Operator, bpy_extras.io_utils.ExportH
     
 
 def register():
-    bpy.utils.register_class(TnbToolsOperatorExportTEST)
+    bpy.utils.register_class(TnbToolsOperatorExportSmoothedValuesOnFaces)
 
 
 def unregister():
-    bpy.utils.unregister_class(TnbToolsOperatorExportTEST)
+    bpy.utils.unregister_class(TnbToolsOperatorExportSmoothedValuesOnFaces)
 
 
 if __name__ == "__main__":
     register()
 
     # test call
-    bpy.ops.tnb_tools.operator_export_test('INVOKE_DEFAULT')
+    bpy.ops.tnb_tools.operator_export_smoothed_values_on_faces('INVOKE_DEFAULT')

@@ -51,7 +51,7 @@ class VIEW3D_PT_tnb_ui(bpy.types.Panel):
                         icon='EXPORT')
         
         layout.operator(tnb_tools_operator_export_lissage_triangulation.TnbToolsOperatorExportSmoothedValuesOnFaces.bl_idname,
-                        text='Lissage d'une valeur',
+                        text='Lissage d\'une valeur',
                         icon='EXPORT')
 
         layout.operator(tnb_tools_operator_export_scale_and_skew_as_image.TnbToolsOperatorExportScaleAndSkewAsImage.bl_idname,
