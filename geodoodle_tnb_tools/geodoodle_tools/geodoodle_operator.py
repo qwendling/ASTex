@@ -337,7 +337,9 @@ class GeodesicDistanceOperator(GeoDoodleOperatorBase):
         distance_writer = self.distance_output_layers.get_writer(obj)
 
         def apply(bm):
-            geodoodle_geometry_math.compute_distance(bm, source_reader, obstacle_reader, distance_writer)
+            obj.data['max_geodesic_distance'] = 0
+            _, _, _, _, _, _, d_max = geodoodle_geometry_math.compute_distance(bm, source_reader, obstacle_reader, distance_writer)
+            obj.data['max_geodesic_distance'] = d_max
 
         yield apply
 

@@ -59,6 +59,8 @@ from .tnb_tools.operators import tnb_tools_operator_export_lissage_triangulation
 from .tnb_tools.operators import tnb_tools_operator_export_scale_and_skew_as_image
 from .tnb_tools.operators import tnb_tools_operator_export_texture_directions_as_csv
 from .tnb_tools.operators import tnb_tools_operator_export_texture_directions_as_image
+from .tnb_tools.operators import tnb_tools_operator_export_texture_directions_as_image_2
+from .tnb_tools.operators import tnb_tools_operator_export_texture_directions_as_image_3
 from .tnb_tools.operators import tnb_tools_operator_triangulate
 from .tnb_tools.operators import tnb_tools_operator_view_directions
 from .tnb_tools.operators import tnb_tools_operator_view_vertex_group_weights
@@ -90,6 +92,8 @@ def register():
     tnb_tools_operator_export_texture_directions_as_csv.register()
     tnb_tools_operator_export_scale_and_skew_as_image.register()
     tnb_tools_operator_export_texture_directions_as_image.register()
+    tnb_tools_operator_export_texture_directions_as_image_2.register()
+    tnb_tools_operator_export_texture_directions_as_image_3.register()
     tnb_tools_operator_view_vertex_group_weights.register()
 
     tnb_tools_operator_triangulate.register()
@@ -109,6 +113,8 @@ def unregister():
     tnb_tools_operator_export_texture_directions_as_csv.unregister()
     tnb_tools_operator_export_scale_and_skew_as_image.unregister()
     tnb_tools_operator_export_texture_directions_as_image.unregister()
+    tnb_tools_operator_export_texture_directions_as_image_2.register()
+    tnb_tools_operator_export_texture_directions_as_image_3.register()
     tnb_tools_operator_view_vertex_group_weights.unregister()
     
     tnb_tools_operator_triangulate.unregister()
