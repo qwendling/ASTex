@@ -94,13 +94,14 @@ def compute_distance(bm, source_reader, obstacle_reader, distance_writer):
 
     d = sparse.linalg.spsolve(S, D @ g.flatten())
     d -= np.amin(d)
-    d = d / np.max(d)
+    d_max = np.max(d)
+    d = d / d_max
     log_matrix(d, "d")
 
     if distance_writer:
         distance_writer.write_scalar(bm, d)
 
-    return M, S, G, D, u, d
+    return M, S, G, D, u, d, d_max
 
 
 def compute_parallel_transport(bm, source_reader, obstacle_reader, vector_writer):

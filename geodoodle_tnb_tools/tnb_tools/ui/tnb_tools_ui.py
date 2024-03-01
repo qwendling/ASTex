@@ -6,6 +6,8 @@ from ..operators import tnb_tools_operator_export_lissage_triangulation
 from ..operators import tnb_tools_operator_export_scale_and_skew_as_image
 from ..operators import tnb_tools_operator_export_texture_directions_as_csv
 from ..operators import tnb_tools_operator_export_texture_directions_as_image
+from ..operators import tnb_tools_operator_export_texture_directions_as_image_2
+from ..operators import tnb_tools_operator_export_texture_directions_as_image_3
 from ..operators import tnb_tools_operator_triangulate
 from ..operators import tnb_tools_operator_view_directions
 from ..operators import tnb_tools_operator_view_vertex_group_weights
@@ -59,7 +61,15 @@ class VIEW3D_PT_tnb_ui(bpy.types.Panel):
                         icon='EXPORT')
         
         layout.operator(tnb_tools_operator_export_texture_directions_as_image.TnbToolsOperatorExportTextureDirectionsAsImage.bl_idname,
-                        text='Export texture directions as image',
+                        text='Export texture directions as image (unique direction per face)',
+                        icon='EXPORT')
+        
+        layout.operator(tnb_tools_operator_export_texture_directions_as_image_2.TnbToolsOperatorExportTextureDirectionsAsImage2.bl_idname,
+                        text='Export texture directions as image (use a fake distance center to get a unique direction at each uv)',
+                        icon='EXPORT')
+        
+        layout.operator(tnb_tools_operator_export_texture_directions_as_image_3.TnbToolsOperatorExportTextureDirectionsAsImage3.bl_idname,
+                        text='Export texture directions as image (use the vertex of minimum geodesic as center to get a unique direction at each uv)',
                         icon='EXPORT')
         
         layout.operator(tnb_tools_operator_export_texture_directions_as_csv.TnbToolsOperatorExportTextureDirectionsAsCsv.bl_idname,
