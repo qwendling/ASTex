@@ -1,6 +1,5 @@
 import os
 import cv2
-import imageio
 import bmesh
 import mathutils
 import numpy as np
@@ -209,7 +208,7 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
                     
                 out_direction_norm = np.linalg.norm(out_direction)
                 if out_direction_norm != 0.0:
-                    out_direction /= np.linalg.norm(out_direction)
+                    out_direction /= self.image_size
                 else:
                     out_direction = np.asarray([0, 0, 0]).astype(float)
                 

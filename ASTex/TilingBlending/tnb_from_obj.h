@@ -367,6 +367,7 @@ public:
       } else if (token == "vt") { // Lire les coordonnées UV
         Eigen::Vector2d vertex;
         iss >> vertex(0) >> vertex(1);
+        vertex.y() = abs(vertex.y() - 1.);
         Vertices_uv.push_back(vertex);
       } else if (token == "f") {
         Face f;
@@ -514,8 +515,8 @@ public:
 
   PIXT tile_pixel(Eigen::Vector2d &uv) // fait le tnb pour un pixel
   {
-    uv[1] = abs(uv[1] - 1.);
-    //    grille
+    // uv[1] = abs(uv[1] - 1.);
+    //     grille
     Eigen::Vector3d B;
     Eigen::Vector2i vertex1, vertex2, vertex3;
     Face f = findTriangleContainingPoint(tree_, Vertices_uv, uv, 0);
@@ -535,6 +536,19 @@ public:
     Eigen::Matrix2d M_transfo_v1 = f_v1.Sim.template block<2, 2>(0, 0);
     Eigen::Matrix2d M_transfo_v2 = f_v2.Sim.template block<2, 2>(0, 0);
     Eigen::Matrix2d M_transfo_v3 = f_v3.Sim.template block<2, 2>(0, 0);
+
+    if (f_v1.area < 0.00001) {
+
+      M_transfo_v1 = F_average_.template block<2, 2>(0, 0);
+    }
+    if (f_v2.area < 0.00001) {
+
+      M_transfo_v2 = F_average_.template block<2, 2>(0, 0);
+    }
+    if (f_v3.area < 0.00001) {
+
+      M_transfo_v3 = F_average_.template block<2, 2>(0, 0);
+    }
 
     /*if (f_v1.area > 0.00001) {
       Eigen::Vector3d U_v1;
@@ -598,8 +612,9 @@ public:
       b = 0.5 * (atan(b) / (M_PI / 2.) + 1);
       c = 0.5 * (atan(c) / (M_PI / 2.) + 1);
 
-      // P = 255. * Eigen::Vector3d(a, b, c);
-      //    P = Eigen::Vector3d(255, 0, 0);
+      // P = 255 * B;
+      //  P = 255. * Eigen::Vector3d(a, b, c);
+      //       P = Eigen::Vector3d(255, 0, 0);
     } else {
       Eigen::Matrix3d F_tmp = F_average_;
 
@@ -612,7 +627,7 @@ public:
       c = 0.5 * (atan(c) / (M_PI / 2.) + 1);
 
       // P = 255. * Eigen::Vector3d(a, b, c);
-      //    P = 255. * Eigen::Vector3d(0, 1, 0);
+      //      P = 255. * Eigen::Vector3d(0, 1, 0);
     }
     /*if (W[0] < 0.02)
       P = EPIXT(255., 255., 255.);
