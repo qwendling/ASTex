@@ -61,6 +61,7 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
     def save_edges_voronoi_as_image(self, context):
         try:        
             out_image = np.zeros((self.image_size, self.image_size, 3), np.float32)
+            out_image2 = np.zeros((self.image_size, self.image_size, 3), np.float32)
             
         except:
             self.report({'ERROR'}, f'Could not save image with auto size (image too big? Width: {self.image_size}, height: {self.image_size})')
@@ -78,10 +79,18 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
         curr_edit_mesh.faces.ensure_lookup_table()
 
         all_sample_pairs_in_image = list()
+        all_sample_pairs_centroid = list()
         all_longest_edges = list()
         all_shortest_edges = list()
+        samples_longest_edge = list()
+        samples_shortest_edge = list()
 
         for cur_face in curr_edit_mesh.faces:
+            centroid = np.asarray([0, 0]).astype(float)
+            for loop in cur_face.loops:
+                centroid = centroid + np.asarray(loop[uv_layer].uv).astype(float)
+            centroid = centroid /3.
+
             cur_face_v_uv_in_image = list()
             for loop in cur_face.loops:
                 loop_uv = loop[uv_layer]
@@ -108,6 +117,15 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
                         is_curr_edge_seam = (n_verts_equal_uv != 2)
                         seamed_face_2 = nei_face
 
+                centroid_1 = np.asarray([0, 0]).astype(float)
+                for loop in seamed_face_1.loops:
+                    centroid_1 = centroid_1 + np.asarray(loop[uv_layer].uv).astype(float)
+                centroid_1 = centroid_1 /3.
+                if seamed_face_2 != None:
+                    centroid_2 = np.asarray([0, 0]).astype(float)
+                    for loop in seamed_face_2.loops:
+                        centroid_2 = centroid_2 + np.asarray(loop[uv_layer].uv).astype(float)
+                    centroid_2 = centroid_2 /3.
                 if is_curr_edge_seam is True:
                     verts_i_seam_face_1 = list()
                     verts_i_seam_face_2 = list()
@@ -155,6 +173,7 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
                         shortest_edge = edge_face_1
                         norm_shortest_edge = norm_edge_1
                         shortest_edge_in_image = edge_face_1_in_image
+                        centroid_1,centroid_2 = centroid_2,centroid_1
 
                     all_longest_edges.append(longest_edge_in_image)
                     all_shortest_edges.append(shortest_edge_in_image)
@@ -163,19 +182,19 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
                     half_step = self.sample_step * 0.5
                     all_t = np.arange(half_step, norm_longest_edge, step=self.sample_step) / norm_longest_edge
 
-                    samples_longest_edge = list()
-                    samples_shortest_edge = list()
+                   
                     for cur_t in all_t:
                         cur_sample_longest = longest_edge[0]   + cur_t * (longest_edge[1] - longest_edge[0])
                         cur_sample_longest_in_image = np.array(cur_sample_longest*self.image_size).astype(int)
                         samples_longest_edge.append(cur_sample_longest)
 
-                        cur_sample_shortest = shortest_edge[0] + cur_t * (shortest_edge[1] - shortest_edge[0])
+                        cur_sample_shortest = shortest_edge[1] + cur_t * (shortest_edge[0] - shortest_edge[1])
                         samples_shortest_edge.append(cur_sample_shortest)
                         cur_sample_shortest_in_image = np.array(cur_sample_shortest*self.image_size).astype(int)
                         
-                        rand_color = (len(all_sample_pairs_in_image), len(all_sample_pairs_in_image), len(all_sample_pairs_in_image))
+                        rand_color = (centroid[0]*self.image_size, centroid[1]*self.image_size, len(all_sample_pairs_in_image))
                         all_sample_pairs_in_image.append([cur_sample_longest_in_image, cur_sample_shortest_in_image, rand_color])
+                        all_sample_pairs_centroid.append([centroid_1,centroid_2])
             
         bound_voronoi = (0, 0, self.image_size, self.image_size)
         voronoi_subdiv = cv2.Subdiv2D(bound_voronoi)
@@ -184,36 +203,60 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
             voronoi_subdiv.insert( (int(cur_sample_pair_in_image[1][0]), int(cur_sample_pair_in_image[1][1])) )
 
         (voronoi_facets, voronoi_centers) = voronoi_subdiv.getVoronoiFacetList([])
+        # for cur_voronoi_facet, cur_voronoi_center in zip(voronoi_facets, voronoi_centers):
+        #     if len(cur_voronoi_facet) != 0:
+        #         pair_color = (0, 0, 0)
+        #         for sample_longest_in_image, sample_shortest_in_image, color in all_sample_pairs_in_image:
+        #             if np.linalg.norm(sample_longest_in_image - cur_voronoi_center) < 1e-9 or np.linalg.norm(sample_shortest_in_image - cur_voronoi_center) < 1e-9:
+        #                 pair_color = color
+        #         cv2.fillPoly(out_image, pts=[np.array(cur_voronoi_facet).astype(int)], color=(sample_longest_in_image[0],sample_longest_in_image[1],0.))
         for cur_voronoi_facet, cur_voronoi_center in zip(voronoi_facets, voronoi_centers):
             if len(cur_voronoi_facet) != 0:
                 pair_color = (0, 0, 0)
-                for sample_longest_in_image, sample_shortest_in_image, color in all_sample_pairs_in_image:
-                    if np.linalg.norm(sample_longest_in_image - cur_voronoi_center) < 1e-9 or np.linalg.norm(sample_shortest_in_image - cur_voronoi_center) < 1e-9:
+                for i,(sample_longest_in_image, sample_shortest_in_image, color) in enumerate(all_sample_pairs_in_image):
+                    centroid_longest,centroid_shortest = all_sample_pairs_centroid[i]
+                    if np.linalg.norm(sample_longest_in_image - cur_voronoi_center) < 1e-9 :
                         pair_color = color
-                cv2.fillPoly(out_image, pts=[np.array(cur_voronoi_facet).astype(int)], color=pair_color)
+                        cv2.fillPoly(out_image, pts=[np.array(cur_voronoi_facet).astype(int)], color=(float(centroid_longest[0]),abs(centroid_longest[1]-1.),i/len(all_sample_pairs_in_image)))
+                        cv2.fillPoly(out_image2, pts=[np.array(cur_voronoi_facet).astype(int)], color=(float(samples_longest_edge[i][0]),abs(samples_longest_edge[i][1]-1.),0.))
+                    if np.linalg.norm(sample_shortest_in_image - cur_voronoi_center) < 1e-9:
+                        pair_color = color
+                        cv2.fillPoly(out_image, pts=[np.array(cur_voronoi_facet).astype(int)], color=(float(centroid_shortest[0]),abs(centroid_shortest[1]-1.),i/len(all_sample_pairs_in_image)))
+                        cv2.fillPoly(out_image2, pts=[np.array(cur_voronoi_facet).astype(int)], color=(float(samples_shortest_edge[i][0]),abs(samples_shortest_edge[i][1]-1.),0.))
 
-        for i_row in range(self.image_size):
-            for i_col in range(self.image_size):
-                cur_pix = np.asarray([i_col, i_row]).astype(float)
-                cur_pix_color = out_image[i_row, i_col] # stores the index of the voronoi cell
+        # for i_row in range(self.image_size):
+        #     break
+        #     for i_col in range(self.image_size):
+        #         cur_pix = np.asarray([i_col, i_row]).astype(float)
+        #         cur_pix_color = out_image[i_row, i_col] # stores the index of the voronoi cell
 
-                sample_longest_in_image, sample_shortest_in_image, color = all_sample_pairs_in_image[int(cur_pix_color[0])]
-                dist_to_sample_longest = np.linalg.norm(cur_pix - sample_longest_in_image)
-                dist_to_sample_shortest = np.linalg.norm(cur_pix - sample_shortest_in_image)
+        #         sample_longest_in_image, sample_shortest_in_image, color = all_sample_pairs_in_image[int(cur_pix_color[2])]
+        #         centroid_longest,centroid_shortest = all_sample_pairs_centroid[int(cur_pix_color[2])]
+        #         dist_to_sample_longest = np.linalg.norm(cur_pix - sample_longest_in_image)
+        #         dist_to_sample_shortest = np.linalg.norm(cur_pix - sample_shortest_in_image)
+        #         centroid_ = centroid_longest
 
-                if dist_to_sample_longest < dist_to_sample_shortest:
-                    out_direction = sample_longest_in_image - cur_pix
-                else:
-                    out_direction = sample_shortest_in_image - cur_pix
+        #         if dist_to_sample_longest < dist_to_sample_shortest:
+        #             out_direction = samples_longest_edge[int(cur_pix_color[2])]
+        #         else:
+        #             out_direction = samples_shortest_edge[int(cur_pix_color[2])]
+        #             centroid_ = centroid_shortest
                     
-                out_direction_norm = np.linalg.norm(out_direction)
-                if out_direction_norm != 0.0:
-                    out_direction /= self.image_size
-                else:
-                    out_direction = np.asarray([0, 0, 0]).astype(float)
+        #         out_direction_norm = np.linalg.norm(out_direction)
+        #         out_color = np.asarray([0, 0, 0]).astype(float)
+        #         if out_direction_norm != 0.0:
+        #             out_color = np.asarray([cur_pix_color[0],cur_pix_color[1]]).astype(float) / self.image_size
+        #             out_direction = out_direction
+        #         else:
+        #             out_direction = np.asarray([0, 0, 0]).astype(float)
                 
-                out_image[i_row, i_col] = np.array([out_direction[0], out_direction[1], cur_pix_color[0]]).astype(float)
+        #         #out_image[i_row, i_col] = np.array([centroid_[0], np.abs(centroid_[1]-1.), color[2]/len(all_sample_pairs_in_image)]).astype(float)
+        #         out_image2[i_row, i_col] = np.array([out_direction[0], np.abs(out_direction[1]-1.), 0]).astype(float)
+        #         #out_image[i_row, i_col] = np.array([out_direction[0], out_direction[1], cur_pix_color[0]]).astype(float)
+        out_image = out_image.astype(np.float32)
+        out_image2 = out_image2.astype(np.float32)
 
+        
         # for cur_edge in all_longest_edges:
         #     cv2.line(out_image, np.array(cur_edge[0]).astype(int), np.array(cur_edge[1]).astype(int), (0, 255, 0, 255), 3)
             
@@ -229,6 +272,7 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
                     
         if self.flip_image_vertically is True:
             out_image = cv2.flip(out_image, 0)
+            out_image2 = cv2.flip(out_image2, 0)
 
         assert out_image.dtype == np.float32
         cv2.imwrite(self.filepath, out_image)
@@ -239,6 +283,7 @@ class TnbToolsOperatorExportEdgesVoronoiAsImage(bpy.types.Operator, bpy_extras.i
         out_file_basename = os.path.basename(outu_file_path)
         out_file_basename_no_ext = os.path.splitext(out_file_basename)[0]
         out_save_png = os.path.join(out_file_dir, f'{out_file_basename_no_ext}.png')
+        cv2.imwrite(os.path.join(out_file_dir, f'{out_file_basename_no_ext}2.exr'), out_image2)
 
         titi = cv2.imread(self.filepath, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
         assert titi.dtype == np.float32
